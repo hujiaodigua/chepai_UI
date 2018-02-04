@@ -22,7 +22,7 @@ function varargout = UI(varargin)
 
 % Edit the above text to modify the response to help UI
 
-% Last Modified by GUIDE v2.5 04-Feb-2018 12:29:01
+% Last Modified by GUIDE v2.5 04-Feb-2018 19:42:02
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -152,14 +152,78 @@ axes(handles.axes_show);
 imshow(Iplate)
 
 %% 车牌字符分割
-[Ipcrop, Ipchar] = cropplate(Iplate);  clear Iplate;
+[Ipcrop, Ipchar] = cropplate(Iplate);  %clear Iplate;
 % save Iplate Iplate
 
-%% 车牌字符识别
-%axes(handles.axes_show1); 
-figure
+%% 车牌字符识别  Ipchar是第一个汉字可以单独拿出来显示
+%figure
 resultc = recchar(Ipchar, param_char);
-[resultp,~] = recplate(Ipcrop, param_num)
+axes(handles.axes_show1); 
+imshow(Ipchar);
+title(resultc);
+%[resultp,~] = recplate(Ipcrop, param_num)  %这一段的代码直接列出来写，而且不要使用subplot
+%*************************************************************************
+%% 识别
+result=''; % 识别结果存储在result中
+j=1;
+%% 识别字母 
+for i=length(Ipcrop):-1:1
+    %     i=2
+    image=Ipcrop{i}; % 识别第i个图片
+    
+    % 预处理
+    image=imresize(image, param_num.img_size);
+    image2=double(reshape(image, param_num.img_size(1)*param_num.img_size(2), 1)'); % 行拉直，下一步PCA（主成分分析）
+    image2=bsxfun(@times,image2,1./sum(image2,2));% 归一化，全部值映射到0-1
+    image2 = image2*param_num.coef(:,1:param_num.dim);% 降维
+    
+    image2=bsxfun(@rdivide, image2, sqrt(param_num.latent(1:param_num.dim)+1e-6));% 白化
+    image2 = image2'; % 最终要使用列向量
+    
+    % 仿真
+    val=sim(param_num.net,image2);
+    [~ , temp] = max(val);
+    ch=param_num.cate(temp);
+    
+    % 结果显示
+    result=[result;ch];
+%     subplot(1,8,j+1)
+    if j+1 == 2
+        axes(handles.axes_show2); 
+        imshow(image);
+        title(ch);
+    end
+    if j+1 == 3
+        axes(handles.axes_show3); 
+        imshow(image);
+        title(ch);
+    end
+    if j+1 == 4
+        axes(handles.axes_show4); 
+        imshow(image);
+        title(ch);
+    end
+    if j+1 == 5
+        axes(handles.axes_show5); 
+        imshow(image);
+        title(ch);
+    end
+    if j+1 == 6
+        axes(handles.axes_show6); 
+        imshow(image);
+        title(ch);
+    end
+    if j+1 == 7
+        axes(handles.axes_show7); 
+        imshow(image);
+        title(ch);
+    end
+    
+    j=j+1;
+end
+%*************************************************************************
+
+resultp = result;
 res=strcat(resultc,resultp(1), ' ',resultp(2), resultp(3), resultp(4), resultp(5), resultp(6));
 % fprintf('识别结果：%s %s  %s %s %s %s %s \n',resultc, resultp);
 axes(handles.axes_src); 
@@ -189,3 +253,9 @@ function edit1_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on button press in pushbutton2.
+function pushbutton2_Callback(hObject, eventdata, handles)
+close(UI());
+mainHandle=GUI_Home();
